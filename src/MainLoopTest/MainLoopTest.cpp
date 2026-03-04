@@ -9,6 +9,7 @@
 #include <GopherEngine/Core/MeshComponent.hpp>
 #include <GopherEngine/Renderer/BlinnPhongMaterial.hpp>
 #include <GopherEngine/Resource/MeshFactory.hpp>
+#include <GopherEngine/Core/FileLoader.hpp>
 using namespace GopherEngine;
 
 #include <SFML/Graphics/Image.hpp>
@@ -34,6 +35,7 @@ class MainLoopTest: public MainLoop
 		void update(float delta_time) override;
 
 		shared_ptr<Node> test_node_;
+		shared_ptr<LoadHandle> test_handle_;
 
 };
 
@@ -70,18 +72,32 @@ void MainLoopTest::initialize() {
     test_material->set_shininess(64.f);
 
 	// Load a texture from disk and set it on the material. 
-    sf::Image image;
-    if (image.loadFromFile("assets/Gravel_001_BaseColor.jpg")) {
-        auto texture = std::make_shared<GopherEngine::Texture>();
-        texture->format_ = GopherEngine::Texture::Format::RGBA; 
-        texture->width_  = image.getSize().x;
-        texture->height_ = image.getSize().y;
-        texture->pixels_.assign(
-            image.getPixelsPtr(),
-            image.getPixelsPtr() + texture->width_ * texture->height_ * 4
-        );
-        test_material->set_texture(texture);
-    }
+	auto handle = FileLoader::load_file_async("assets/Gravel_001_BaseColor.jpg");
+	handle.on_complete([test_material](auto &file_data) {
+		if(file_data.ok_) {
+			cout << "Successfully loaded texture: " << file_data.path_ << " (" << file_data.bytes_.size() << " bytes)" << endl;
+
+			sf::Image image;
+			if(image.loadFromMemory(file_data.bytes_.data(), file_data.bytes_.size())) {
+				auto texture = std::make_shared<GopherEngine::Texture>();
+				texture->format_ = GopherEngine::Texture::Format::RGBA; 
+				texture->width_  = image.getSize().x;
+				texture->height_ = image.getSize().y;
+				texture->pixels_.assign(
+					image.getPixelsPtr(),
+					image.getPixelsPtr() + texture->width_ * texture->height_ * 4
+				);
+				test_material->set_texture(texture);
+			}
+		} 
+		else {
+			cout << file_data.error_ << endl;
+		}
+	});
+
+	test_handle_ = make_shared<LoadHandle>(handle);
+	
+    
 
 	// Create a single node in the scene
 	test_node_ = scene_->create_node();
@@ -116,6 +132,10 @@ void MainLoopTest::update(float delta_time) {
     );
     test_node_->transform().rotation_ =  frame_rotation * test_node_->transform().rotation_;
 
+	if(test_handle_ && test_handle_->is_ready()) {
+		test_handle_->fire_callback();
+		test_handle_.reset();
+	}
 }
 
 int main()

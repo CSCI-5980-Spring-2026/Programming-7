@@ -5,6 +5,7 @@
 #include <GopherEngine/Renderer/Renderer.hpp>
 #include <GopherEngine/Core/Scene.hpp>
 #include <GopherEngine/Core/Clock.hpp>
+#include <GopherEngine/Resource/ResourceManager.hpp>
 
 #include <memory>
 
@@ -39,6 +40,9 @@ namespace GopherEngine
             Renderer renderer_;
             Clock clock_;
             std::shared_ptr<Scene> scene_;
+
+            // Services
+            ResourceManager resource_manager_;
 
         // Private members and functions are only accessible within the class
         private:

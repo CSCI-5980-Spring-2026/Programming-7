@@ -10,6 +10,7 @@ namespace GopherEngine {
     MainLoop::MainLoop()
     {
         scene_ = make_shared<Scene>();
+        Service<ResourceManager>::provide(&resource_manager_);
     }
 
     MainLoop::~MainLoop()
