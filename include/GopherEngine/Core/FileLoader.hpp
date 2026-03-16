@@ -23,8 +23,16 @@ namespace GopherEngine
         std::string error_;
     };
 
-    class LoadHandle
-    {
+    // -------------------------------------------------------------------------
+    // LoadHandle
+    //   Returned immediately by FileLoader::startLoad().  The caller keeps this
+    //   alive, calls isReady() each frame (cheap -- non-blocking), and calls
+    //   get() once to take ownership of the FileData on the main thread.
+    //
+    //   Built on std::shared_future so handles can be freely copied and passed
+    //   to multiple systems without either one consuming the result.
+    // -------------------------------------------------------------------------
+    class LoadHandle {
     public:
 
         using Callback = std::function<void(const FileData&)>;
@@ -51,6 +59,8 @@ namespace GopherEngine
             return future_.valid(); 
         }
 
+        // Call on the main thread once is_ready() returns true.
+        // Invokes the registered callback (if any) with the completed FileData.
         void fire_callback() {
             if(!callback_)
                 return;
@@ -68,12 +78,13 @@ namespace GopherEngine
             std::shared_future<FileData> future_;
             Callback callback_;
     };
-    
 
     class FileLoader
     {
     public:
 
+        // Start an asynchronous binary read.  Returns immediately.
+        // The returned handle becomes ready when I/O completes (or fails).
         static LoadHandle load_file_async(const std::filesystem::path& path);
 
         // Blocking call to read a file on the current thread.
